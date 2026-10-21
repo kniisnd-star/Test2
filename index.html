@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full bg-slate-900 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ห้องทดลองเสมือนจริง: การออกแบบกำลังเครื่องยนต์ดีเซล</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Kanit', sans-serif;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col overflow-x-hidden antialiased bg-slate-950 text-slate-100">
+
+    <!-- Header Navbar -->
+    <header class="bg-slate-900/80 backdrop-blur border-b border-slate-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-amber-500 to-orange-600 p-2.5 rounded-xl shadow-lg shadow-orange-500/20">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-amber-400 via-orange-400 to-amber-200 bg-clip-text text-transparent">
+                        Diesel Power Lab v1.0
+                    </h1>
+                    <p class="text-xs text-slate-400">ห้องทดลองกลศาสตร์เครื่องจักรกล: การออกแบบกำลังเครื่องยนต์ดีเซล</p>
+                </div>
+            </div>
+            
+            <!-- Quick Challenge Button -->
+            <button id="challengeToggleBtn" onclick="toggleChallengeModal()" class="flex items-center space-x-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-medium px-4 py-2 rounded-xl transition duration-200 shadow-lg shadow-orange-500/20 active:scale-95">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                <span>โจทย์ท้าทาย (Challenge Mission)</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- LEFT COLUMN: Control Panel (4 Cols) -->
+        <section class="lg:col-span-4 flex flex-col gap-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col gap-5">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                    <h2 class="text-lg font-semibold text-amber-400 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                        แผงควบคุมพารามิเตอร์
+                    </h2>
+                    <button onclick="resetSliders()" class="text-xs text-slate-400 hover:text-amber-400 underline transition">รีเซ็ตค่ามาตรฐาน</button>
+                </div>
+
+                <!-- Slider 1: Mean Effective Pressure (P_me) -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <label for="pmeSlider" class="text-slate-300 font-medium">ความดันเฉลี่ยยังผล ($P_{me}$)</label>
+                        <span class="text-amber-400 font-bold"><span id="pmeVal">12.0</span> bar</span>
+                    </div>
+                    <input type="range" id="pmeSlider" min="5" max="25" step="0.5" value="12" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                    <p class="text-xs text-slate-500">จำลองแรงอัด/การอัดเทอร์โบในกระบอกสูบ</p>
+                </div>
+
+                <!-- Slider 2: Bore Diameter (D) -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <label for="boreSlider" class="text-slate-300 font-medium">ขนาดเส้นผ่านศูนย์กลางกระบอกสูบ ($D$)</label>
+                        <span class="text-amber-400 font-bold"><span id="boreVal">92.0</span> mm</span>
+                    </div>
+                    <input type="range" id="boreSlider" min="60" max="150" step="1" value="92" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                    <p class="text-xs text-slate-500">พื้นที่หน้าตัดลูกสูบสำหรับรับแรงระเบิด</p>
+                </div>
+
+                <!-- Slider 3: Stroke Length (L) -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <label for="strokeSlider" class="text-slate-300 font-medium">ระยะช่วงชักลูกสูบ ($L$)</label>
+                        <span class="text-amber-400 font-bold"><span id="strokeVal">100.0</span> mm</span>
+                    </div>
+                    <input type="range" id="strokeSlider" min="70" max="180" step="1" value="100" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                    <p class="text-xs text-slate-500">ระยะเคลื่อนที่จาก TDC ถึง BDC</p>
+                </div>
+
+                <!-- Slider 4: Engine Speed (RPM) -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <label for="rpmSlider" class="text-slate-300 font-medium">ความเร็วรอบเครื่องยนต์ ($N$)</label>
+                        <span class="text-amber-400 font-bold"><span id="rpmVal">2500</span> RPM</span>
+                    </div>
+                    <input type="range" id="rpmSlider" min="800" max="4500" step="50" value="2500" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                    <p class="text-xs text-slate-500">รอบการหมุนของเพลาข้อเหวี่ยงต่อนาที</p>
+                </div>
+
+                <!-- Slider 5: Number of Cylinders (n) -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <label for="cylSlider" class="text-slate-300 font-medium">จำนวนกระบอกสูบ ($n$)</label>
+                        <span class="text-amber-400 font-bold"><span id="cylVal">4</span> สูบ</span>
+                    </div>
+                    <input type="range" id="cylSlider" min="1" max="8" step="1" value="4" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                    <p class="text-xs text-slate-500">จำนวนสูบของเครื่องยนต์ดีเซล 4 จังหวะ</p>
+                </div>
+
+                <!-- Simulation Control Buttons -->
+                <div class="pt-2 flex gap-3">
+                    <button id="pauseBtn" onclick="togglePause()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium py-2 rounded-xl transition flex items-center justify-center gap-2 border border-slate-700">
+                        <svg id="pauseIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span id="pauseText">หยุดชั่วคราว</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT COLUMN: Visualization & Output Dashboard (8 Cols) -->
+        <section class="lg:col-span-8 flex flex-col gap-6">
+
+            <!-- Graphical Animation Display Area -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col items-center justify-center relative overflow-hidden min-h-[360px]">
+                <div class="absolute top-4 left-4 z-10 bg-slate-950/70 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-800 text-xs font-mono text-emerald-400 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                    การทำงานของกลไกข้อเหวี่ยง-ลูกสูบ Real-time
+                </div>
+                
+                <!-- HTML5 Canvas for Kinematic Simulation -->
+                <canvas id="engineCanvas" class="w-full h-[320px] rounded-xl bg-slate-950/50"></canvas>
+
+                <!-- Status Banner -->
+                <div class="w-full mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                    <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+                        <div class="text-xs text-slate-400">ปริมาตรกระบอกสูบรวม ($V_d$)</div>
+                        <div class="text-base sm:text-lg font-bold text-amber-400" id="dispOutput">0.00 cc</div>
+                    </div>
+                    <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+                        <div class="text-xs text-slate-400">กำลังอินดิเคต ($P_{ind}$)</div>
+                        <div class="text-base sm:text-lg font-bold text-orange-400"><span id="powerOutput">0.0</span> kW</div>
+                    </div>
+                    <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+                        <div class="text-xs text-slate-400">แรงม้าอินดิเคต ($HP$)</div>
+                        <div class="text-base sm:text-lg font-bold text-yellow-400"><span id="hpOutput">0.0</span> HP</div>
+                    </div>
+                    <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+                        <div class="text-xs text-slate-400">แรงบิดประเมิน ($T$)</div>
+                        <div class="text-base sm:text-lg font-bold text-emerald-400"><span id="torqueOutput">0.0</span> N·m</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulas & Kinematic Explanations -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Mathematical Formula Box -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-md font-semibold text-slate-200 border-b border-slate-800 pb-2 mb-3 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                            สูตรคำนวณทางกลศาสตร์
+                        </h3>
+                        <div class="space-y-3 font-mono text-xs sm:text-sm text-slate-300">
+                            <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+                                <p class="text-amber-400 font-sans font-medium mb-1">1. ปริมาตรดูดรวม ($V_d$):</p>
+                                <p>$$V_d = n \times \left( \frac{\pi}{4} \times D^2 \times L \right)$$</p>
+                            </div>
+                            <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+                                <p class="text-amber-400 font-sans font-medium mb-1">2. กำลังเครื่องยนต์ดีเซล 4 จังหวะ ($P$):</p>
+                                <p>$$P = P_{me} \times V_d \times \frac{N}{2 \times 60}$$</p>
+                            </div>
+                            <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+                                <p class="text-amber-400 font-sans font-medium mb-1">3. แรงบิดเครื่องยนต์ ($T$):</p>
+                                <p>$$T = \frac{P \times 60}{2 \pi N} = \frac{P \times 9549}{N}$$</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phenomena & Physics Explanation Box -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                    <h3 class="text-md font-semibold text-slate-200 border-b border-slate-800 pb-2 mb-3 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        คำอธิบายปรากฏการณ์ทางกายภาพ
+                    </h3>
+                    <div id="dynamicExplanation" class="text-xs sm:text-sm text-slate-300 leading-relaxed space-y-2">
+                        <!-- Dynamic text generated via JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <div id="challengeModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+            <!-- Modal Close Button -->
+            <button onclick="toggleChallengeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <!-- Mission Header -->
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="p-3 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">ภารกิจออกแบบเครื่องยนต์ (Challenge Mission)</h3>
+                    <p class="text-xs text-slate-400">ปรับพารามิเตอร์ของเครื่องยนต์เพื่อให้ได้ค่าเป้าหมาย</p>
+                </div>
+            </div>
+
+            <!-- Challenge Box Details -->
+            <div class="bg-slate-950 rounded-xl p-4 border border-slate-800 mb-5 space-y-3">
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-slate-400">ความต้องการโจทย์:</span>
+                    <span id="targetParamName" class="font-bold text-amber-400">แรงม้าอินดิเคต ($HP$)</span>
+                </div>
+                <div class="flex justify-between items-baseline">
+                    <span class="text-xs text-slate-500">เป้าหมายที่ต้องทำได้:</span>
+                    <span class="text-2xl font-extrabold text-emerald-400"><span id="targetValueText">150.0</span> <span id="targetUnitText">HP</span></span>
+                </div>
+                <div class="text-xs text-slate-400 bg-slate-900 p-2.5 rounded-lg border border-slate-800/60">
+                    💡 <span class="font-semibold text-slate-300">เงื่อนไข:</span> ปรับแต่ง Slider ในแผงควบคุมเพื่อให้ค่าปัจจุบันอยู่ในช่วง <span class="text-amber-400 font-semibold">±3%</span> ของเป้าหมาย
+                </div>
+            </div>
+
+            <!-- Current vs Target Comparison -->
+            <div class="grid grid-cols-2 gap-3 mb-6 text-center">
+                <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
+                    <p class="text-xs text-slate-400">ค่าปัจจุบันของคุณ</p>
+                    <p id="currentChallengeVal" class="text-xl font-bold text-yellow-400">0.0</p>
+                </div>
+                <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
+                    <p class="text-xs text-slate-400">ความคลาดเคลื่อนปัจจุบัน</p>
+                    <p id="currentChallengeDiff" class="text-xl font-bold text-red-400">100%</p>
+                </div>
+            </div>
+
+            <!-- Status Banner inside Modal -->
+            <div id="missionResultAlert" class="hidden mb-4 p-3 rounded-xl text-center text-sm font-semibold"></div>
+
+            <!-- Mission Buttons -->
+            <div class="flex gap-3">
+                <button onclick="generateNewMission()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium py-2.5 rounded-xl transition text-sm">
+                    🎲 สุ่มโจทย์ใหม่
+                </button>
+                <button onclick="checkMissionAnswer()" class="flex-1 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-medium py-2.5 rounded-xl transition text-sm shadow-lg shadow-orange-500/20">
+                    ✓ ตรวจคำตอบ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- State Variables ---
+        let pme = 12.0;   // bar
+        let bore = 92;    // mm
+        let stroke = 100; // mm
+        let rpm = 2500;   // RPM
+        let cylinders = 4;// count
+
+        let calculatedPowerkW = 0;
+        let calculatedHP = 0;
+        let calculatedTorque = 0;
+        let calculatedDisplacement = 0;
+
+        let isPaused = false;
+        let crankAngle = 0; // Degrees
+        let animationFrameId = null;
+
+        // Challenge Mission State
+        let currentMission = {
+            type: 'HP', // 'HP' or 'Torque' or 'Displacement'
+            targetValue: 150,
+            unit: 'HP'
+        };
+
+        // --- DOM Elements ---
+        const pmeSlider = document.getElementById('pmeSlider');
+        const boreSlider = document.getElementById('boreSlider');
+        const strokeSlider = document.getElementById('strokeSlider');
+        const rpmSlider = document.getElementById('rpmSlider');
+        const cylSlider = document.getElementById('cylSlider');
+
+        const pmeVal = document.getElementById('pmeVal');
+        const boreVal = document.getElementById('boreVal');
+        const strokeVal = document.getElementById('strokeVal');
+        const rpmVal = document.getElementById('rpmVal');
+        const cylVal = document.getElementById('cylVal');
+
+        const dispOutput = document.getElementById('dispOutput');
+        const powerOutput = document.getElementById('powerOutput');
+        const hpOutput = document.getElementById('hpOutput');
+        const torqueOutput = document.getElementById('torqueOutput');
+        const dynamicExplanation = document.getElementById('dynamicExplanation');
+
+        const canvas = document.getElementById('engineCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- Event Listeners ---
+        pmeSlider.addEventListener('input', (e) => { pme = parseFloat(e.target.value); pmeVal.textContent = pme.toFixed(1); updateEngineCalculations(); });
+        boreSlider.addEventListener('input', (e) => { bore = parseFloat(e.target.value); boreVal.textContent = bore.toFixed(1); updateEngineCalculations(); });
+        strokeSlider.addEventListener('input', (e) => { stroke = parseFloat(e.target.value); strokeVal.textContent = stroke.toFixed(1); updateEngineCalculations(); });
+        rpmSlider.addEventListener('input', (e) => { rpm = parseFloat(e.target.value); rpmVal.textContent = rpm; updateEngineCalculations(); });
+        cylSlider.addEventListener('input', (e) => { cylinders = parseInt(e.target.value); cylVal.textContent = cylinders; updateEngineCalculations(); });
+
+        function updateEngineCalculations() {
+            // 1. Bore Area in m^2
+            const boreMeters = bore / 1000;
+            const strokeMeters = stroke / 1000;
+            const singleCylVolM3 = (Math.PI / 4) * Math.pow(boreMeters, 2) * strokeMeters; // m^3
+            
+            // Total Displacement in cc (cm^3)
+            calculatedDisplacement = singleCylVolM3 * cylinders * 1000000;
+
+            // 2. Power Calculation (4-stroke engine -> N/2 revolutions per second)
+            // Pme in Pa = pme * 100,000 Pa
+            const pmePa = pme * 100000;
+            const nRps = rpm / 60;
+            const powerWatts = pmePa * (singleCylVolM3 * cylinders) * (nRps / 2); // Watts
+            
+            calculatedPowerkW = powerWatts / 1000; // kW
+            calculatedHP = calculatedPowerkW * 1.34102; // Metric HP approx
+
+            // 3. Torque Calculation (T = Power / Omega)
+            const omega = (2 * Math.PI * rpm) / 60;
+            calculatedTorque = omega > 0 ? (powerWatts / omega) : 0;
+
+            // Render Output Text
+            dispOutput.textContent = calculatedDisplacement.toFixed(0) + " cc";
+            powerOutput.textContent = calculatedPowerkW.toFixed(1);
+            hpOutput.textContent = calculatedHP.toFixed(1);
+            torqueOutput.textContent = calculatedTorque.toFixed(1);
+
+            // Update Dynamic Physical Explanation
+            updateExplanations();
+
+            // Update Challenge Stats inside modal if open
+            updateChallengeStatusUI();
+        }
+
+        function updateExplanations() {
+            const strokeToBoreRatio = stroke / bore;
+            let engineTypeStr = "";
+            if (strokeToBoreRatio > 1.05) {
+                engineTypeStr = "เครื่องยนต์ประเภทช่วงชักยาว (Long-stroke Engine) เน้นแรงบิดสูงในรอบต่ำ เหมาะแก่การบรรทุกหนัก";
+            } else if (strokeToBoreRatio < 0.95) {
+                engineTypeStr = "เครื่องยนต์ประเภทช่วงชักสั้น/ลูกสูบโต (Short-stroke / Overbore) ตอบสนองรอบเครื่องยนต์สูงได้รวดเร็ว";
+            } else {
+                engineTypeStr = "เครื่องยนต์ประเภทช่วงชักสเกวร์ (Square Engine) มีความสมดุลดีเยี่ยมระหว่างแรงบิดและความเร็วรอบ";
+            }
+
+            const pmeEffect = pme > 15 ? 
+                "แรงอัดอัดอากาศ/เทอร์โบชาร์จอยู่ในระดับสูงมาก (High Boost) เพิ่มกำลังต่อความจุโดยไม่ต้องเพิ่มขนาดเครื่องยนต์" :
+                "แรงดันอัดอยู่ในเกณฑ์ปกติของการสันดาปเครื่องยนต์ดีเซลทั่วไป";
+
+            dynamicExplanation.innerHTML = `
+                <p>• <strong>สัดส่วนกระบอกสูบ:</strong> ค่า $L/D$ เท่ากับ <span class="text-amber-400 font-semibold">${strokeToBoreRatio.toFixed(2)}</span> จัดเป็น<em>${engineTypeStr}</em></p>
+                <p>• <strong>พฤติกรรมแรงดัน:</strong> ความดันเฉลี่ย $P_{me}$ ที่ <span class="text-amber-400 font-semibold">${pme} bar</span> — ${pmeEffect}</p>
+                <p>• <strong>ความเร็วความรอบและกำลัง:</strong> ที่ความเร็วรอบ <span class="text-amber-400 font-semibold">${rpm} RPM</span> เกิดกำลังอินดิเคต <span class="text-amber-400 font-semibold">${calculatedHP.toFixed(1)} HP</span> และสร้างแรงบิดได้ <span class="text-emerald-400 font-semibold">${calculatedTorque.toFixed(1)} N·m</span> ส่งผ่านไปยังชุดเกียร์และเพลาขับเคลื่อน</p>
+            `;
+        }
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight || 320;
+        }
+
+        function drawEngineSimulation() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2 + 50;
+
+            // Mechanical Proportions (Scaled for canvas display)
+            const crankRadius = Math.min(canvas.width, canvas.height) * 0.15 * (stroke / 120); 
+            const connRodLength = crankRadius * 2.8;
+
+            // Angle in Radians
+            const rad = (crankAngle * Math.PI) / 180;
+
+            // Crankpin Position (x1, y1)
+            const crankX = centerX + crankRadius * Math.sin(rad);
+            const crankY = centerY - crankRadius * Math.cos(rad);
+
+            // Piston Position (y2) using Kinematic Equation: y = r*cos(theta) + sqrt(l^2 - r^2*sin^2(theta))
+            const pistonY = centerY - (crankRadius * Math.cos(rad) + Math.sqrt(Math.pow(connRodLength, 2) - Math.pow(crankRadius * Math.sin(rad), 2)));
+            const pistonWidth = Math.min(canvas.width * 0.25, 70 * (bore / 90));
+            const pistonHeight = 40;
+
+            // 1. Draw Cylinder Walls
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#475569'; // Slate-600
+            const cylinderTop = centerY - crankRadius - connRodLength - 40;
+            const cylinderBottom = centerY - crankRadius + 20;
+
+            ctx.beginPath();
+            // Left Wall
+            ctx.moveTo(centerX - pistonWidth / 2 - 5, cylinderTop);
+            ctx.lineTo(centerX - pistonWidth / 2 - 5, cylinderBottom);
+            // Right Wall
+            ctx.moveTo(centerX + pistonWidth / 2 + 5, cylinderTop);
+            ctx.lineTo(centerX + pistonWidth / 2 + 5, cylinderBottom);
+            ctx.stroke();
+
+            // 2. Combustion Effect Flash inside Chamber (Top Center)
+            if (crankAngle >= 350 || crankAngle <= 20) {
+                const gradient = ctx.createRadialGradient(centerX, cylinderTop + 15, 5, centerX, cylinderTop + 25, pistonWidth / 2);
+                gradient.addColorStop(0, 'rgba(251, 146, 60, 0.9)'); // Bright Orange
+                gradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(centerX - pistonWidth / 2, cylinderTop, pistonWidth, (pistonY - cylinderTop));
+            }
+
+            // 3. Draw Connecting Rod
+            ctx.lineWidth = 8;
+            ctx.strokeStyle = '#94a3b8'; // Slate-400
+            ctx.beginPath();
+            ctx.moveTo(crankX, crankY);
+            ctx.lineTo(centerX, pistonY);
+            ctx.stroke();
+
+            // 4. Draw Crankshaft Arm
+            ctx.lineWidth = 10;
+            ctx.strokeStyle = '#f59e0b'; // Amber-500
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(crankX, crankY);
+            ctx.stroke();
+
+            // Crankshaft Center Axis
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 12, 0, Math.PI * 2);
+            ctx.fillStyle = '#64748b';
+            ctx.fill();
+            ctx.stroke();
+
+            // Crankpin Joint
+            ctx.beginPath();
+            ctx.arc(crankX, crankY, 7, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+
+            // 5. Draw Piston Head
+            ctx.fillStyle = '#334155'; // Slate-700
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(centerX - pistonWidth / 2, pistonY - pistonHeight / 2, pistonWidth, pistonHeight, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            // Piston Pin (Gudgeon Pin)
+            ctx.beginPath();
+            ctx.arc(centerX, pistonY, 5, 0, Math.PI * 2);
+            ctx.fillStyle = '#f8fafc';
+            ctx.fill();
+
+            // 6. Stroke Indicators (TDC & BDC Label)
+            ctx.font = '10px Kanit, sans-serif';
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText('TDC', centerX + pistonWidth / 2 + 12, cylinderTop + 30);
+            ctx.fillText('BDC', centerX + pistonWidth / 2 + 12, cylinderTop + 30 + (2 * crankRadius));
+
+            // Dashed lines for TDC / BDC
+            ctx.setLineDash([3, 3]);
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 1;
+
+            ctx.beginPath();
+            ctx.moveTo(centerX - pistonWidth / 2 - 10, cylinderTop + 25);
+            ctx.lineTo(centerX + pistonWidth / 2 + 10, cylinderTop + 25);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(centerX - pistonWidth / 2 - 10, cylinderTop + 25 + (2 * crankRadius));
+            ctx.lineTo(centerX + pistonWidth / 2 + 10, cylinderTop + 25 + (2 * crankRadius));
+            ctx.stroke();
+
+            ctx.setLineDash([]); // Reset Line Dash
+        }
+
+        function animate(timestamp) {
+            if (!isPaused) {
+                // RPM determines rotation velocity per frame
+                const degreesPerFrame = (rpm / 60) * 360 * (1 / 60); // Assuming ~60 FPS
+                crankAngle = (crankAngle + degreesPerFrame) % 360;
+            }
+            drawEngineSimulation();
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            const pauseText = document.getElementById('pauseText');
+            const pauseIcon = document.getElementById('pauseIcon');
+            if (isPaused) {
+                pauseText.textContent = "เล่นต่อ";
+                pauseIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>`;
+            } else {
+                pauseText.textContent = "หยุดชั่วคราว";
+                pauseIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>`;
+            }
+        }
+
+        function resetSliders() {
+            pmeSlider.value = 12; pme = 12; pmeVal.textContent = "12.0";
+            boreSlider.value = 92; bore = 92; boreVal.textContent = "92.0";
+            strokeSlider.value = 100; stroke = 100; strokeVal.textContent = "100.0";
+            rpmSlider.value = 2500; rpm = 2500; rpmVal.textContent = "2500";
+            cylSlider.value = 4; cylinders = 4; cylVal.textContent = "4";
+            updateEngineCalculations();
+        }
+
+        function toggleChallengeModal() {
+            const modal = document.getElementById('challengeModal');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) {
+                updateChallengeStatusUI();
+            }
+        }
+
+        function generateNewMission() {
+            const types = ['HP', 'Torque', 'Displacement'];
+            const chosenType = types[Math.floor(Math.random() * types.length)];
+            currentMission.type = chosenType;
+
+            const alertBox = document.getElementById('missionResultAlert');
+            alertBox.classList.add('hidden');
+
+            if (chosenType === 'HP') {
+                currentMission.targetValue = Math.floor(Math.random() * 250) + 80; // 80 - 330 HP
+                currentMission.unit = 'HP';
+                document.getElementById('targetParamName').textContent = 'แรงม้าอินดิเคต (HP)';
+            } else if (chosenType === 'Torque') {
+                currentMission.targetValue = Math.floor(Math.random() * 400) + 200; // 200 - 600 N·m
+                currentMission.unit = 'N·m';
+                document.getElementById('targetParamName').textContent = 'แรงบิดเครื่องยนต์ (Torque)';
+            } else {
+                currentMission.targetValue = Math.floor(Math.random() * 25) * 100 + 1500; // 1500 - 4000 cc
+                currentMission.unit = 'cc';
+                document.getElementById('targetParamName').textContent = 'ปริมาตรความจุกระบอกสูบ (Displacement)';
+            }
+
+            document.getElementById('targetValueText').textContent = currentMission.targetValue;
+            document.getElementById('targetUnitText').textContent = currentMission.unit;
+
+            updateChallengeStatusUI();
+        }
+
+        function getCurrentMissionVal() {
+            if (currentMission.type === 'HP') return calculatedHP;
+            if (currentMission.type === 'Torque') return calculatedTorque;
+            return calculatedDisplacement;
+        }
+
+        function updateChallengeStatusUI() {
+            const currentVal = getCurrentMissionVal();
+            const targetVal = currentMission.targetValue;
+            const diffPct = Math.abs((currentVal - targetVal) / targetVal) * 100;
+
+            document.getElementById('currentChallengeVal').textContent = `${currentVal.toFixed(1)} ${currentMission.unit}`;
+            document.getElementById('currentChallengeDiff').textContent = `${diffPct.toFixed(1)}%`;
+
+            if (diffPct <= 3.0) {
+                document.getElementById('currentChallengeDiff').className = "text-xl font-bold text-emerald-400";
+            } else {
+                document.getElementById('currentChallengeDiff').className = "text-xl font-bold text-amber-400";
+            }
+        }
+
+        function checkMissionAnswer() {
+            const currentVal = getCurrentMissionVal();
+            const targetVal = currentMission.targetValue;
+            const diffPct = Math.abs((currentVal - targetVal) / targetVal) * 100;
+            const alertBox = document.getElementById('missionResultAlert');
+
+            alertBox.classList.remove('hidden', 'bg-emerald-500/20', 'text-emerald-300', 'bg-red-500/20', 'text-red-300', 'border-emerald-500/40', 'border-red-500/40', 'border');
+
+            if (diffPct <= 3.0) {
+                alertBox.classList.add('bg-emerald-500/20', 'text-emerald-300', 'border-emerald-500/40', 'border');
+                alertBox.innerHTML = `🎉 ยินดีด้วย! ออกแบบผ่านเกณฑ์เป้าหมายสำเร็จ (ความคลาดเคลื่อนเพียง ${diffPct.toFixed(2)}%)`;
+            } else {
+                alertBox.classList.add('bg-red-500/20', 'text-red-300', 'border-red-500/40', 'border');
+                alertBox.innerHTML = `❌ ยังไม่ผ่านเกณฑ์! ค่าปัจจุบันต่างจากเป้าหมายอยู่ ${diffPct.toFixed(1)}% (ต้องไม่เกิน 3%) ลองปรับ Slider เพิ่มเติม`;
+            }
+        }
+
+        // --- Window Initialization ---
+        window.addEventListener('resize', resizeCanvas);
+
+        window.onload = function () {
+            resizeCanvas();
+            updateEngineCalculations();
+            generateNewMission();
+            animate();
+        };
+    </script>
+</body>
+</html>
